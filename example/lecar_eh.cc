@@ -129,33 +129,39 @@ void UpdateReplacementState_SRRIP (uint32_t cpu, uint32_t set, uint32_t way, uin
 // initialize replacement state
 void InitReplacementState()
 {
+    //initialize LRU and SRRIP replacement states
     InitReplacementState_LRU();
     InitReplacementState_SRRIP();
 }
 
 // find replacement victim
-// return value should be 0 ~ 15 or 16 (bypass)
 uint32_t GetVictimInSet (uint32_t cpu, uint32_t set, const BLOCK *current_set, uint64_t PC, uint64_t paddr, uint32_t type)
 {
-    if (rand_float() < prob) {
+    if (rand_float() < prob) { //LRU selected
+        //empty history queue if maxed out
         if (history.size() == LLC_SETS * LLC_WAYS) {
             history.pop_front();
         }
+        //add new entry to history queue
         history_entry entry;
         entry.addr = paddr;
         entry.type = 0;
         entry.time = get_cycle_count();
         history.push_back(entry);
+        //identify victim using LRU
         return GetVictimInSet_LRU(cpu, set, current_set, PC, paddr, type);
-    } else {
+    } else { //SRRIP selected
+        //empty history queue if maxed out
         if (history.size() == LLC_SETS * LLC_WAYS) {
             history.pop_front();
         }
+        //add new entry to history queue
         history_entry entry;
         entry.addr = paddr;
         entry.type = 1;
         entry.time = get_cycle_count();
         history.push_back(entry);
+        //identify victim using SRRIP
         return GetVictimInSet_SRRIP(cpu, set, current_set, PC, paddr, type);
     }
 }
